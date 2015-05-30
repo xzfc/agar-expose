@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     1.2
+// @version     1.3
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/
@@ -13,11 +13,15 @@ if (window.top != window.self)
 
 var observer = new MutationObserver(function(mutations) {
     for (var i = 0; i < mutations.length; i++) {
-        if (/^http:\/\/agar\.io\/main_out\.js/.test(mutations[i].addedNodes[0].src)) {
-            document.head.removeChild(mutations[i].addedNodes[0])
-            observer.disconnect()
-            runRequest()
-            break
+        var addedNodes = mutations[i].addedNodes
+        for (var j = 0; j < addedNodes.length; j++) {
+            var addedNode = addedNodes[j]
+            if (/^http:\/\/agar\.io\/main_out\.js/.test(addedNode.src)) {
+                document.head.removeChild(addedNode)
+                observer.disconnect()
+                runRequest()
+                return
+            }
         }
     }
 })
