@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     1.3.1
+// @version     1.4
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -58,12 +58,12 @@ function modify(text) {
                 reset += "window.agar." + what + "=" + defaultValue + ";"
         }
     }
-    replace("allCells", /(\w+)\.push\(this\);/,     "$&" + "window.agar.allCells=$1;",         '[]')
-    replace("myCells",  /(case 32:)(\w+)(\.push)/,  "$1" + "window.agar.myCells=$2;" + "$2$3", '[]')
-    replace("top",      /case 49:[^:]+?(\w+)=\[];/, "$&" + "window.agar.top=$1;",              '[]')
-    replace("ws",       /new WebSocket\((\w+)\);/,  "$&" + "window.agar.ws=$1;",               '""')
-    replace("topTeams", /case 50:(\w+)=\[];/,       "$&" + "window.agar.topTeams=$1;",         '[]')
-    replace("reset",    /new WebSocket\(\w+\);/,    "$&" + reset)
+    replace("allCells", /(\w+)\.push\(this\);/,        "$&" + "window.agar.allCells=$1;",         '[]')
+    replace("myCells",  /(case 32:)(\w+)(\.push)/,     "$1" + "window.agar.myCells=$2;" + "$2$3", '[]')
+    replace("top",      /case 49:[^:]+?(\w+)=\[];/,    "$&" + "window.agar.top=$1;",              '[]')
+    replace("ws",       /new WebSocket\((\w+)[^;]+?;/, "$&" + "window.agar.ws=$1;",               '""')
+    replace("topTeams", /case 50:(\w+)=\[];/,          "$&" + "window.agar.topTeams=$1;",         '[]')
+    replace("reset",    /new WebSocket\(\w+[^;]+?;/,   "$&" + reset)
 
     return "window.agar={};" + reset + text
 }
