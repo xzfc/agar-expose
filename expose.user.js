@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     1.6
+// @version     1.7
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -78,6 +78,7 @@ function modify(text) {
     replace("ws",       /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                '""')
     replace("topTeams", /case 50:(\w+)=\[];/,                     "$&" + "window.agar.topTeams=$1;",          '[]')
     replace("reset",    /new WebSocket\(\w+[^;]+?;/,   "$&" + reset)
+    replace("region",   /console\.log\("Find "\+(\w+)\+\w+\);/,   "$&" + "window.agar.region=$1;",            '""')
 
     return "window.agar={};" + reset + text
 }
