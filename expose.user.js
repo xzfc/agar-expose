@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     2.0
+// @version     2.1
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
 // @include     http://petridish.pw/*
+// @include     http://fxia.me/agar/
 // @run-at      document-start
 // @grant       none
 // ==/UserScript==
@@ -36,6 +37,24 @@ var allRules = [
           m.replace("dimensions", /(case 64:)(?:.|\n|\r)*?(break;)/,        "$1" + "window.agar.dimensions=" + d + ";$2", dd)
           m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
       }},
+    { hostname: ["fxia.me"],
+      scriptRe: /\/main_out\.js\?[0-9]+/,
+      replace: function(m) {
+          m.replace("allCells", /if \(nodes\.hasOwnProperty\(nodeid\)\) {/,
+                    "window.agar.allCells=nodes;" + "$&",       '{}')
+          m.replace("myCells", /(case 32: \/\/ add node(?:.|\n|\r)+?)(break;)/,
+                    "$1" + "window.agar.myCells = nodesOnScreen;" + "$2", '[]')
+          m.replace("top", /(case 49:(?:.|\n|\r)+?)(break;)/,
+                    "$1" + "window.agar.top = leaderBoard;" + "$2", '[]')
+          m.replace("ws", /ws = new WebSocket\(wsUrl\);/,
+                    "$&" + "window.agar.ws = wsUrl;", '""')
+          m.replace("dimensions", /(case 64:(?:.|\n|\r)+?)(break;)/,
+                    "$1" + "window.agar.dimensions = [leftPos,topPos,rightPos,bottomPos];" + "$2", '[0,0,11180,11180]')
+          m.replace("reset", /ws = new WebSocket\(wsUrl\);/,
+                   "$&" + m.reset)
+          m.replace("onload", /$/, "window.onload()")
+      }
+    }
 ]
 
 
