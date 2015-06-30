@@ -13,22 +13,28 @@ var allRules = [
     { hostname: ["agar.io"],
       scriptRe: /^http:\/\/agar\.io\/main_out\.js/,
       replace: function (m) {
-          m.replace("allCells", /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/, "$1" + "window.agar.allCells=$2;" + "$2$3", '{}')
-          m.replace("myCells",  /(case 32:)(\w+)(\.push)/,                "$1" + "window.agar.myCells=$2;" + "$2$3",  '[]')
-          m.replace("top",      /case 49:[^:]+?(\w+)=\[];/,               "$&" + "window.agar.top=$1;",               '[]')
-          m.replace("ws",       /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                '""')
-          m.replace("topTeams", /case 50:(\w+)=\[];/,                     "$&" + "window.agar.topTeams=$1;",          '[]')
-          m.replace("reset",    /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
-          m.replace("region",   /console\.log\("Find "\+(\w+)\+\w+\);/,   "$&" + "window.agar.region=$1;",            '""')
+          var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\),\\w+\\+=8,"
+          var dd = 7071.067811865476; dd = JSON.stringify([-dd,-dd,dd,dd])
+          m.replace("allCells",   /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/, "$1" + "window.agar.allCells=$2;" + "$2$3",    '{}')
+          m.replace("myCells",    /(case 32:)(\w+)(\.push)/,                "$1" + "window.agar.myCells=$2;" + "$2$3",     '[]')
+          m.replace("top",        /case 49:[^:]+?(\w+)=\[];/,               "$&" + "window.agar.top=$1;",                  '[]')
+          m.replace("ws",         /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                   '""')
+          m.replace("topTeams",   /case 50:(\w+)=\[];/,                     "$&" + "window.agar.topTeams=$1;",             '[]')
+          m.replace("dimensions", RegExp("case 64:"+dr+dr+dr+dr),           "$&" + "window.agar.dimensions=[$1,$2,$3,$4],", dd)
+          m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
+          m.replace("region",     /console\.log\("Find "\+(\w+)\+\w+\);/,   "$&" + "window.agar.region=$1;",               '""')
       }},
     { hostname: ["petridish.pw"],
       scriptRe: /\/engine\/main[0-9]+.js\?/,
       replace: function(m) {
-          m.replace("allCells", /if \(blobs\.hasOwnProperty\(id\)\) {/,   "window.agar.allCells=blobs;" + "$&",       '{}')
-          m.replace("myCells",  /case 32:/,                               "$&" + "window.agar.myCells=ids;",          '[]')
-          m.replace("top",      /case 49:(.|\n|\r){0,400}users = \[\];/,  "$&" + "window.agar.top=users;",            '[]')
-          m.replace("ws",       /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                '""')
-          m.replace("reset",    /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
+          var d = "[minX,minY,maxX,maxY]"
+          var dd = JSON.stringify([0,0,11180,11180])
+          m.replace("allCells",   /if \(blobs\.hasOwnProperty\(id\)\) {/,   "window.agar.allCells=blobs;" + "$&",       '{}')
+          m.replace("myCells",    /case 32:/,                               "$&" + "window.agar.myCells=ids;",          '[]')
+          m.replace("top",        /case 49:(.|\n|\r){0,400}users = \[\];/,  "$&" + "window.agar.top=users;",            '[]')
+          m.replace("ws",         /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                '""')
+          m.replace("dimensions", /(case 64:)(?:.|\n|\r)*?(break;)/,        "$1" + "window.agar.dimensions=" + d + ";$2", dd)
+          m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
       }},
 ]
 
