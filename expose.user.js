@@ -53,8 +53,7 @@ var allRules = [
           m.replace("reset", /ws = new WebSocket\(wsUrl\);/,
                    "$&" + m.reset)
           m.replace("onload", /$/, "window.onload()")
-      }
-    }
+      }},
 ]
 
 
@@ -104,7 +103,7 @@ function tryReplace(node) {
         text: null,
         replace: function(what, from, to, defaultValue) {
             var newText = this.text.replace(from, to)
-            if(newText === this.text) {
+            if (newText === this.text) {
                 console.error("Expose: " + what + " replacement failed!")
             } else {
                 this.text = newText
@@ -114,7 +113,7 @@ function tryReplace(node) {
         },
         get: function() {
             return "window.agar={};" + this.reset + this.text
-        }
+        },
     }
 
     var request = new XMLHttpRequest()
