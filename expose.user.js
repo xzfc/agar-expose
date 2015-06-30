@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     2.1
+// @version     2.2
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -23,7 +23,7 @@ var allRules = [
           m.replace("topTeams",   /case 50:(\w+)=\[];/,                     "$&" + "window.agar.topTeams=$1;",             '[]')
           m.replace("dimensions", RegExp("case 64:"+dr+dr+dr+dr),           "$&" + "window.agar.dimensions=[$1,$2,$3,$4],", dd)
           m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
-          m.replace("region",     /console\.log\("Find "\+(\w+)\+\w+\);/,   "$&" + "window.agar.region=$1;",               '""')
+          m.replace("region",     /console\.log\("Find "\+(\w+\+\w+)\);/,   "$&" + "window.agar.region=$1;",               '""')
       }},
     { hostname: ["petridish.pw"],
       scriptRe: /\/engine\/main[0-9]+.js\?/,
