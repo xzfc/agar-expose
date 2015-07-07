@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     2.2
+// @version     2.3
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -12,7 +12,7 @@
 
 var allRules = [
     { hostname: ["agar.io"],
-      scriptRe: /^http:\/\/agar\.io\/main_out\.js/,
+      scriptTextRe: /console\.log\("socket open"\);/,
       replace: function (m) {
           var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\),\\w+\\+=8,"
           var dd = 7071.067811865476; dd = JSON.stringify([-dd,-dd,dd,dd])
@@ -26,10 +26,10 @@ var allRules = [
           m.replace("region",     /console\.log\("Find "\+(\w+\+\w+)\);/,   "$&" + "window.agar.region=$1;",               '""')
       }},
     { hostname: ["petridish.pw"],
-      scriptRe: /\/engine\/main[0-9]+.js\?/,
+      scriptUriRe: /\/engine\/main[0-9]+.js\?/,
       replace: function(m) {
           var d = "[minX,minY,maxX,maxY]"
-          var dd = JSON.stringify([0,0,11180,11180])
+          var dd = '[0,0,11180,11180]'
           m.replace("allCells",   /if \(blobs\.hasOwnProperty\(id\)\) {/,   "window.agar.allCells=blobs;" + "$&",       '{}')
           m.replace("myCells",    /case 32:/,                               "$&" + "window.agar.myCells=ids;",          '[]')
           m.replace("top",        /case 49:(.|\n|\r){0,400}users = \[\];/,  "$&" + "window.agar.top=users;",            '[]')
@@ -38,7 +38,7 @@ var allRules = [
           m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
       }},
     { hostname: ["fxia.me"],
-      scriptRe: /\/main_out\.js\?[0-9]+/,
+      scriptUriRe: /\/main_out\.js\?[0-9]+/,
       replace: function(m) {
           m.replace("allCells", /if \(nodes\.hasOwnProperty\(nodeid\)\) {/,
                     "window.agar.allCells=nodes;" + "$&",       '{}')
@@ -94,16 +94,17 @@ observer.observe(document.head, {childList: true})
 
 // Stage 3: Replace found element using rules
 function tryReplace(node) {
-    if (!rules.scriptRe.test(node.src))
+    var scriptLinked = rules.scriptUriRe && rules.scriptUriRe.test(node.src)
+    var scriptEmbedded = rules.scriptTextRe && rules.scriptTextRe.test(node.textContent)
+    if (node.tagName != "SCRIPT" || (!scriptLinked && !scriptEmbedded))
         return false // this is not desired element; get back to stage 2
-    document.head.removeChild(node)
 
     var mod = {
         reset: "",
         text: null,
         replace: function(what, from, to, defaultValue) {
             var newText = this.text.replace(from, to)
-            if (newText === this.text) {
+            if(newText === this.text) {
                 console.error("Expose: " + what + " replacement failed!")
             } else {
                 this.text = newText
@@ -113,27 +114,35 @@ function tryReplace(node) {
         },
         get: function() {
             return "window.agar={};" + this.reset + this.text
-        },
+        }
     }
 
-    var request = new XMLHttpRequest()
-    request.onload = function() {
-        var script = document.createElement("script")
-        mod.text = this.responseText
+    if (scriptEmbedded) {
+        mod.text = node.textContent
         rules.replace(mod)
-        script.innerHTML = mod.get()
-        // `main_out.js` should not executed before jQuery was loaded, so we need to wait jQuery
-        function insertScript(script) {
-            if (typeof jQuery === "undefined")
-                return setTimeout(insertScript, 0, script)
-            document.head.appendChild(script)
-            console.log("Expose: replacement done")
+        node.textContent = mod.get()
+        console.log("Expose: replacement done")
+    } else {
+        document.head.removeChild(node)
+        var request = new XMLHttpRequest()
+        request.onload = function() {
+            var script = document.createElement("script")
+            mod.text = this.responseText
+            rules.replace(mod)
+            script.textContent = mod.get()
+            // `main_out.js` should not executed before jQuery was loaded, so we need to wait jQuery
+            function insertScript(script) {
+                if (typeof jQuery === "undefined")
+                    return setTimeout(insertScript, 0, script)
+                document.head.appendChild(script)
+                console.log("Expose: replacement done")
+            }
+            insertScript(script)
         }
-        insertScript(script)
+        request.onerror = function() { console.error("Expose: response was null") }
+        request.open("get", node.src, true)
+        request.send()
     }
-    request.onerror = function() { console.error("Expose: response was null") }
-    request.open("get", node.src, true)
-    request.send()
 
     return true
 }
