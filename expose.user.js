@@ -14,7 +14,7 @@ var allRules = [
     { hostname: ["agar.io"],
       scriptTextRe: /console\.log\("socket open"\);/,
       replace: function (m) {
-          var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\),\\w+\\+=8,"
+          var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\);\\w+\\+=8;\\n?"
           var dd = 7071.067811865476; dd = JSON.stringify([-dd,-dd,dd,dd])
           m.replace("allCells",   /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/, "$1" + "window.agar.allCells=$2;" + "$2$3",    '{}')
           m.replace("myCells",    /(case 32:)(\w+)(\.push)/,                "$1" + "window.agar.myCells=$2;" + "$2$3",     '[]')
