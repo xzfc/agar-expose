@@ -25,6 +25,7 @@ var allRules = [
           m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
           m.replace("region",     /console\.log\("Find "\+(\w+\+\w+)\);/,   "$&" + "window.agar.region=$1;",               '""')
           m.replace("isVirus",    /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/, "$1$4.isVirus=$3")
+          m.replace("dommousescroll", /("DOMMouseScroll",)(\w+),/,          "$1(window.agar.dommousescroll=$2),")
       }},
     { hostname: ["petridish.pw"],
       scriptUriRe: /\/engine\/main[0-9]+.js\?/,
