@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     2.4
+// @version     2.5
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -133,10 +133,14 @@ function tryReplace(node, event) {
     if (scriptEmbedded) {
         mod.text = node.textContent
         rules.replace(mod)
-        document.head.removeChild(node)
-        var script = document.createElement("script")
-        script.textContent = mod.get()
-        document.head.appendChild(script)
+        if (isFirefox) {
+            document.head.removeChild(node)
+            var script = document.createElement("script")
+            script.textContent = mod.get()
+            document.head.appendChild(script)
+        } else {
+            node.textContent = mod.get()
+        }
         console.log("Expose: replacement done")
     } else {
         document.head.removeChild(node)
