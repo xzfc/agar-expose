@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     2.5
+// @version     2.6
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -26,6 +26,8 @@ var allRules = [
           m.replace("region",     /console\.log\("Find "\+(\w+\+\w+)\);/,   "$&" + "window.agar.region=$1;",               '""')
           m.replace("isVirus",    /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/, "$1$4.isVirus=$3")
           m.replace("dommousescroll", /("DOMMouseScroll",)(\w+),/,          "$1(window.agar.dommousescroll=$2),")
+          m.replace("skin",       /;null==(\w+)\|\|(\w+)\|\|\(\w+\.save\(\),\w+\.clip\(\),/,
+                    ";if(this.skin)$1=this.skin;$1||($1=window.agar.defaultSkin||null);if($1&&$1.big)$2=true" + "$&")
       }},
     { hostname: ["petridish.pw"],
       scriptUriRe: /\/engine\/main[0-9]+.js\?/,
