@@ -4,8 +4,6 @@
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
-// @include     http://petridish.pw/*
-// @include     http://fxia.me/agar/
 // @run-at      document-start
 // @grant       none
 // ==/UserScript==
@@ -28,35 +26,6 @@ var allRules = [
           m.replace("dommousescroll", /("DOMMouseScroll",)(\w+),/,          "$1(window.agar.dommousescroll=$2),")
           m.replace("skin",       /;null==(\w+)\|\|(\w+)\|\|\(\w+\.save\(\),\w+\.clip\(\),/,
                     ";if(this.skin)$1=this.skin;$1||($1=window.agar.defaultSkin||null);if($1&&$1.big)$2=true" + "$&")
-      }},
-    { hostname: ["petridish.pw"],
-      scriptUriRe: /\/engine\/main[0-9]+.js\?/,
-      replace: function(m) {
-          var d = "[minX,minY,maxX,maxY]"
-          var dd = '[0,0,11180,11180]'
-          m.replace("allCells",   /if \(blobs\.hasOwnProperty\(id\)\) {/,   "window.agar.allCells=blobs;" + "$&",       '{}')
-          m.replace("myCells",    /case 32:/,                               "$&" + "window.agar.myCells=ids;",          '[]')
-          m.replace("top",        /case 49:(.|\n|\r){0,400}users = \[\];/,  "$&" + "window.agar.top=users;",            '[]')
-          m.replace("ws",         /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                '""')
-          m.replace("dimensions", /(case 64:)(?:.|\n|\r)*?(break;)/,        "$1" + "window.agar.dimensions=" + d + ";$2", dd)
-          m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
-      }},
-    { hostname: ["fxia.me"],
-      scriptUriRe: /\/main_out\.js\?[0-9]+/,
-      replace: function(m) {
-          m.replace("allCells", /if \(nodes\.hasOwnProperty\(nodeid\)\) {/,
-                    "window.agar.allCells=nodes;" + "$&",       '{}')
-          m.replace("myCells", /(case 32: \/\/ add node(?:.|\n|\r)+?)(break;)/,
-                    "$1" + "window.agar.myCells = nodesOnScreen;" + "$2", '[]')
-          m.replace("top", /(case 49:(?:.|\n|\r)+?)(break;)/,
-                    "$1" + "window.agar.top = leaderBoard;" + "$2", '[]')
-          m.replace("ws", /ws = new WebSocket\(wsUrl\);/,
-                    "$&" + "window.agar.ws = wsUrl;", '""')
-          m.replace("dimensions", /(case 64:(?:.|\n|\r)+?)(break;)/,
-                    "$1" + "window.agar.dimensions = [leftPos,topPos,rightPos,bottomPos];" + "$2", '[0,0,11180,11180]')
-          m.replace("reset", /ws = new WebSocket\(wsUrl\);/,
-                   "$&" + m.reset)
-          m.replace("onload", /$/, "window.onload()")
       }},
 ]
 
