@@ -44,6 +44,21 @@ var allRules = [
                     "$&" + "window.agar.dimensions=[$1,$2,$3,$4],",
                     JSON.stringify([-dd,-dd,dd,dd]))
 
+          var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);c\\+=4;"
+          var text = m.text
+          true &&
+              m.replace("rawViewport:x,y",
+	                /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
+	                "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;") &&
+	      m.replace("rawViewport:scale",
+	                /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
+	                "window.agar.rawViewport.scale=$1;" + "$&") &&
+	      m.replace("rawViewport.x,y,scale",
+	                RegExp("case 17:"+vr+vr+vr),
+                        "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;window.agar.rawViewport.scale=$3;") &&
+	      (m.reset += "window.agar.rawViewport={x:0,y:0,scale:1};") ||
+	      (m.text = text)
+          
           m.replace("reset",
                     /new WebSocket\(\w+[^;]+?;/,
                     "$&" + m.reset)
@@ -128,10 +143,12 @@ function tryReplace(node, event) {
             var newText = this.text.replace(from, to)
             if(newText === this.text) {
                 console.error("Expose: " + what + " replacement failed!")
+                return false
             } else {
                 this.text = newText
                 if(defaultValue !== undefined)
                     this.reset += "window.agar." + what + "=" + defaultValue + ";"
+                return true
             }
         },
         get: function() {
