@@ -12,19 +12,57 @@ var allRules = [
     { hostname: ["agar.io"],
       scriptTextRe: /console\.log\("socket open"\);/,
       replace: function (m) {
+          m.replace("allCells",
+                    /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/,
+                    "$1" + "window.agar.allCells=$2;" + "$2$3",
+                    '{}')
+
+          m.replace("myCells",
+                    /(case 32:)(\w+)(\.push)/,
+                    "$1" + "window.agar.myCells=$2;" + "$2$3",
+                    '[]')
+
+          m.replace("top",
+                    /case 49:[^:]+?(\w+)=\[];/,
+                    "$&" + "window.agar.top=$1;",
+                    '[]')
+
+          m.replace("ws",
+                    /new WebSocket\((\w+)[^;]+?;/,
+                    "$&" + "window.agar.ws=$1;",
+                    '""')
+
+          m.replace("topTeams",
+                    /case 50:(\w+)=\[];/,
+                    "$&" + "window.agar.topTeams=$1;",
+                    '[]')
+
           var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\);\\w+\\+=8;\\n?"
-          var dd = 7071.067811865476; dd = JSON.stringify([-dd,-dd,dd,dd])
-          m.replace("allCells",   /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/, "$1" + "window.agar.allCells=$2;" + "$2$3",    '{}')
-          m.replace("myCells",    /(case 32:)(\w+)(\.push)/,                "$1" + "window.agar.myCells=$2;" + "$2$3",     '[]')
-          m.replace("top",        /case 49:[^:]+?(\w+)=\[];/,               "$&" + "window.agar.top=$1;",                  '[]')
-          m.replace("ws",         /new WebSocket\((\w+)[^;]+?;/,            "$&" + "window.agar.ws=$1;",                   '""')
-          m.replace("topTeams",   /case 50:(\w+)=\[];/,                     "$&" + "window.agar.topTeams=$1;",             '[]')
-          m.replace("dimensions", RegExp("case 64:"+dr+dr+dr+dr),           "$&" + "window.agar.dimensions=[$1,$2,$3,$4],", dd)
-          m.replace("reset",      /new WebSocket\(\w+[^;]+?;/,              "$&" + m.reset)
-          m.replace("region",     /console\.log\("Find "\+(\w+\+\w+)\);/,   "$&" + "window.agar.region=$1;",               '""')
-          m.replace("isVirus",    /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/, "$1$4.isVirus=$3")
-          m.replace("dommousescroll", /("DOMMouseScroll",)(\w+),/,          "$1(window.agar.dommousescroll=$2),")
-          m.replace("skin",       /;null==(\w+)\|\|(\w+)\|\|\(\w+\.save\(\),\w+\.clip\(\),/,
+          var dd = 7071.067811865476
+          m.replace("dimensions",
+                    RegExp("case 64:"+dr+dr+dr+dr),
+                    "$&" + "window.agar.dimensions=[$1,$2,$3,$4],",
+                    JSON.stringify([-dd,-dd,dd,dd]))
+
+          m.replace("reset",
+                    /new WebSocket\(\w+[^;]+?;/,
+                    "$&" + m.reset)
+
+          m.replace("region",
+                    /console\.log\("Find "\+(\w+\+\w+)\);/,
+                    "$&" + "window.agar.region=$1;",
+                    '""')
+
+          m.replace("isVirus",
+                    /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/,
+                    "$1$4.isVirus=$3")
+
+          m.replace("dommousescroll",
+                    /("DOMMouseScroll",)(\w+),/,
+                    "$1(window.agar.dommousescroll=$2),")
+
+          m.replace("skin",
+                    /;null==(\w+)\|\|(\w+)\|\|\(\w+\.save\(\),\w+\.clip\(\),/,
                     ";if(this.skin)$1=this.skin;$1||($1=window.agar.defaultSkin||null);if($1&&$1.big)$2=true" + "$&")
       }},
 ]
