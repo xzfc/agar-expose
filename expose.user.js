@@ -63,6 +63,11 @@ var allRules = [
                     /new WebSocket\(\w+[^;]+?;/,
                     "$&" + m.reset)
 
+          m.replace("minScale",
+                    /;1>(\w+)&&\(\1=1\)/,
+                    ";window.agar.minScale>$1&&($1=window.agar.minScale)",
+                    "1")
+
           m.replace("region",
                     /console\.log\("Find "\+(\w+\+\w+)\);/,
                     "$&" + "window.agar.region=$1;",
