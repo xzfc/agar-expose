@@ -1,5 +1,7 @@
 # Agar.io Expose
 ## What is it?
+
+[![Join the chat at https://gitter.im/xzfc/agar-expose](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/xzfc/agar-expose?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Agar.io Expose — helper script for agar.io modding.
 It allows you access to game state (e.g., visible cell positions and names, and much more) inside your mods.
 
