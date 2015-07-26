@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     3.0
+// @version     3.1
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -82,8 +82,12 @@ var allRules = [
                     "$1(window.agar.dommousescroll=$2),")
 
           m.replace("skin",
-                    /;null==(\w+)\|\|(\w+)\|\|\(\w+\.save\(\),\w+\.clip\(\),/,
-                    ";if(this.skin)$1=this.skin;$1||($1=window.agar.defaultSkin||null);if($1&&$1.big)$2=true" + "$&")
+                    /;null!=(\w+)\&\&\(\w+\.save\(\),\w+\.clip\(\),/,
+                    ";if(this.skin&&this.skin.complete)$1=this.skin;$1||($1=window.agar.defaultSkin||null);var expose_ssx2=$1&&$1.big?2:1" + "$&")
+
+          m.replace("drawSkin",
+                    /;null!=(\w+)\&\&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+\.drawImage\(\w+,this\.\w+-this\.size)(,this\.\w+-this\.\w+)(,2\*this\.size)(,2\*this\.size)\),(\w+\.restore\(\))\);/,
+                    ";if(null!=$1){$2;if(!$1.big)$3;$4*expose_ssx2$5*expose_ssx2$6*expose_ssx2$7*expose_ssx2);$8;};")
       }},
 ]
 
