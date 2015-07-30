@@ -83,7 +83,9 @@ var allRules = [
 
           m.replace("skin",
                     /;null!=(\w+)\&\&\(\w+\.save\(\),\w+\.clip\(\),/,
-                    ";if(this.skin&&this.skin.complete)$1=this.skin;$1||($1=window.agar.defaultSkin||null);var expose_ssx2=$1&&$1.big?2:1" + "$&")
+                    ";if (typeof window.agar.skinF === 'function') $1 = window.agar.skinF(this, $1)" +
+                    ";var expose_ssx2 = $1&&$1.big?2:1" +
+                    "$&")
 
           m.replace("drawSkin",
                     /;null!=(\w+)\&\&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+\.drawImage\(\w+,this\.\w+-this\.size)(,this\.\w+-this\.\w+)(,2\*this\.size)(,2\*this\.size)\),(\w+\.restore\(\))\);/,
