@@ -8,6 +8,12 @@
 // @grant       none
 // ==/UserScript==
 
+function makeProperty(name, varname) {
+    return "'" + name + "' in window.agar || " +
+        "Object.defineProperty( window.agar, '"+name+"', " +
+        "{get:function(){return "+varname+"},set:function(){"+varname+"=arguments[0]},enumerable:true})"
+}
+
 var allRules = [
     { hostname: ["agar.io"],
       scriptTextRe: /console\.log\("socket open"\);/,
@@ -62,6 +68,10 @@ var allRules = [
           m.replace("reset",
                     /new WebSocket\(\w+[^;]+?;/,
                     "$&" + m.reset)
+
+          m.replace("scale",
+                    /function \w+\(\w+\){[^;]+;1>(\w+)&&\(\1=1\)/,
+                    ";" + makeProperty("scale", "$1") + ";" + "$&")
 
           m.replace("minScale",
                     /;1>(\w+)&&\(\1=1\)/,
