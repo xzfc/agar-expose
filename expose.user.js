@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     3.2
+// @version     3.3
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -53,16 +53,20 @@ var allRules = [
           var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);c\\+=4;"
           var text = m.text
           true &&
-              m.replace("rawViewport:x,y",
+              m.replace("rawViewport:x,y;disableRendering:1",
 	                /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
-	                "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;") &&
+	                "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;" +
+                        "if(window.agar.disableRendering)return;") &&
+              m.replace("disableRendering:2",
+                        /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.\w+;)/,
+                        "$1" + "if(window.agar.disableRendering)return;" + "$2") &&
 	      m.replace("rawViewport:scale",
 	                /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
 	                "window.agar.rawViewport.scale=$1;" + "$&") &&
 	      m.replace("rawViewport.x,y,scale",
 	                RegExp("case 17:"+vr+vr+vr),
                         "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;window.agar.rawViewport.scale=$3;") &&
-	      (m.reset += "window.agar.rawViewport={x:0,y:0,scale:1};") ||
+	      (m.reset += "window.agar.rawViewport={x:0,y:0,scale:1};" + "agar.disableRendering=false;") ||
 	      (m.text = text)
           
           m.replace("reset",
