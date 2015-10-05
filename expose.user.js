@@ -104,6 +104,10 @@ var allRules = [
           m.replace("drawSkin",
                     /;null!=(\w+)\&\&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+\.drawImage\(\w+,this\.\w+-this\.size)(,this\.\w+-this\.\w+)(,2\*this\.size)(,2\*this\.size)\),(\w+\.restore\(\))\);/,
                     ";if(null!=$1){$2;if(!$1.big)$3;$4*expose_ssx2$5*expose_ssx2$6*expose_ssx2$7*expose_ssx2);$8;};")
+                    
+          m.replace("drawPellets",
+                    /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
+                    "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}")
       }},
 ]
 
