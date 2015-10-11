@@ -108,6 +108,92 @@ var allRules = [
           m.replace("drawPellets",
                     /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
                     "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}")
+                    
+       	m.replace("paintPellets",
+                    /(\w+)\?\((\w+\.fillStyle=.+),(\w+\.strokeStyle=.+)\):\(\w+=ec\(this\.J\)\|\|(this\.color),(\w+\.fillStyle=)\w+\,(\w+\.strokeStyle=)\w+\);/,
+                    "if($1){$2;$3;}else if(this.size*this.size/100<5 && window.bakaconf!==undefined){$5$6window.bakaconf.pelletColor;} else if(this.isVirus && window.bakaconf!==undefined){$5$6window.bakaconf.virusColor}else {$5$4;$6$4;}")
+          
+          m.replace("showMass",
+                    /(this\.id\&\&Jb\&\&)(.*)(20<this\.size)\)/,
+                    "$1$3")
+          
+          m.replace("cellNameOffset",
+                    /(\w+\.drawImage\(\w+,~~this\.x-~~\(\w+\/2\),\w+-~~\()(\w+\/2)(\),\w+,\w+\);)/,
+                    "$1$2*window.bakaconf.cellNameOffsetY$3")
+          
+          m.replace("cellMassOffset",
+                    /(\w+\.drawImage\(\w+,\s+~~this\.x-~~\(\w+\/2\),\w+-~~\()(\w+\/2)(\),\w+,\w+\)\);)/,
+                    "$1$2*(this.f?1:window.bakaconf.cellMassOffsetY)$3")
+          
+          m.replace("cellMassScale",
+                    /(\w+\.G\(this\.i\(\)\/2)(\))/,
+                    "$1*(this.f?6:window.bakaconf.cellMassScale)$2")
+          
+          m.replace("virusShots",
+                    /(c\.u\(~~\()(this.size\*this\.size\/100)(\)\),\w+=Math\.ceil)/,
+                    "$1this.f?(200-this.size*this.size/100)/14:$2$3")
+          
+          m.replace("scoreTextCoords",
+                    /(\w+\.drawImage\(\w+,)(15)(,)(\w+-10-24-5)(\)\);)/,
+                    "$1window.bakaconf.scoreX+3$3window.bakaconf.scoreY+3$5")
+          
+          m.replace("scoreBackCoords",
+                    /(\w+\.fillRect\()(10)(,)(\w+-10-24-10)(,\w+\+10,34\))/,
+                    "$1window.bakaconf.scoreX$3window.bakaconf.scoreY$5")
+                    
+          m.replace("colorCoding & splitGuide",
+                    /(\w+)\.globalAlpha=1;\w+=-1!=\w+\.indexOf\(this\);/,
+"var size_margin = (window.agar.colorOffensive ? window.agar.myCellsMax : window.agar.myCellsMin);\
+if (window.agar.enableColorCoding && window.agar.myCells.length != 0) {\
+if (!this.isVirus && this.size*this.size/100 > 13) {\
+a.beginPath();\
+a.globalAlpha = 0.9;\
+a.lineWidth = 15;\
+if (window.agar.myCells.indexOf(this.id) != - 1) {\
+a.strokeStyle = '#FFFFFF';\
+} else if (this.size > Math.sqrt(2) * size_margin / 0.85) {\
+a.strokeStyle = '#FF0000';\
+} else if (this.size > size_margin / 0.85) {\
+a.strokeStyle = '#FF7F00';\
+} else if (this.size > size_margin * 0.85) {\
+a.strokeStyle = '#FFFF00';\
+} else if (this.size > size_margin / Math.sqrt(2) * 0.85) {\
+a.strokeStyle = '#008000';\
+} else {\
+a.strokeStyle = '#ADD8E6';\
+}\
+a.arc(this.x, this.y, this.size + 25, 0, Math.PI * 2, false);\
+a.closePath();\
+a.stroke();\
+a.lineWidth = 10;\
+}\
+}\
+if (window.agar.enableSplitGuides) {\
+if ((this.size >= Math.sqrt(2) * window.agar.myCellsMin / 0.85) || (this.size >= 60 && window.agar.myCells.indexOf(this.id) != - 1) || this.isVirus) {\
+a.globalAlpha = 0.8;\
+if (window.bakaconf !== undefined) {\
+a.lineWidth = window.bakaconf.splitGuideWidth;\
+}\
+a.strokeStyle = (window.agar.myCells.indexOf(this.id) == - 1 ? '#FF0000' : '#FFFFFF');\
+if (this.isVirus) {\
+a.strokeStyle = '#7CFC00'\
+}\
+a.beginPath();\
+a.arc(this.x, this.y, this.size + Math.max(760, this.size) + this.size, 0, 2 * Math.PI, !1);\
+a.closePath();\
+a.stroke();\
+if (window.agar.myCells.indexOf(this.id) != - 1) {\
+a.globalAlpha = 0.4;\
+a.beginPath();\
+a.arc(this.x, this.y, this.size + Math.max(760, this.size), 0, 2 * Math.PI, !1);\
+a.closePath();\
+a.stroke();\
+}\
+a.lineWidth = 10;\
+a.globalAlpha = 1;\
+}\
+}\
+" + "$&")
       }},
 ]
 
