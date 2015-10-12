@@ -107,7 +107,8 @@ var allRules = [
 
           m.replace("drawPellets",
                     /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
-                    "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}")
+                    "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}",
+                    "true")
       }},
 ]
 
