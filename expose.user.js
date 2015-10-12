@@ -14,6 +14,10 @@ function makeProperty(name, varname) {
         "{get:function(){return "+varname+"},set:function(){"+varname+"=arguments[0]},enumerable:true})"
 }
 
+function hook(name, args) {
+    return "window.agar.hooks." + name + "&&window.agar.hooks." + name + "(" + args + ")"
+}
+
 var allRules = [
     { hostname: ["agar.io"],
       scriptTextRe: /console\.log\("socket open"\);/,
@@ -57,9 +61,9 @@ var allRules = [
                         /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
                         "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;" +
                         "if(window.agar.disableRendering)return;") &&
-              m.replace("disableRendering:2",
+              m.replace("disableRendering:2;Hook:skipCellDraw",
                         /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.\w+;)/,
-                        "$1" + "if(window.agar.disableRendering)return;" + "$2") &&
+                        "$1" + "if(window.agar.disableRendering||" +  hook("skipCellDraw", "this") + ")return;" + "$2") &&
               m.replace("rawViewport:scale",
                 /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
                 "window.agar.rawViewport.scale=$1;" + "$&") &&
@@ -101,9 +105,9 @@ var allRules = [
                     ";var expose_ssx2 = $1&&$1.big?2:1" +
                     "$&")
 
-          m.replace("drawSkin",
+          m.replace("drawSkin;Hook:afterDrawSkin",
                     /;null!=(\w+)\&\&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+\.drawImage\(\w+,this\.\w+-this\.size)(,this\.\w+-this\.\w+)(,2\*this\.size)(,2\*this\.size)\),(\w+\.restore\(\))\);/,
-                    ";if(null!=$1){$2;if(!$1.big)$3;$4*expose_ssx2$5*expose_ssx2$6*expose_ssx2$7*expose_ssx2);$8;};")
+                    ";if(null!=$1){$2;if(!$1.big)$3;$4*expose_ssx2$5*expose_ssx2$6*expose_ssx2$7*expose_ssx2);$8;}" + hook("afterDrawSkin", "a,this") + ";")
 
           m.replace("drawPellets",
                     /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
@@ -123,6 +127,18 @@ var allRules = [
                         'window.agar.aliveCellsList=' + vAlive[1] + '=[];' + 'window.agar.eatenCellsList=' + vEaten[1] + '=[];')
           else
               console.error("Expose: can't find vAlive or vEaten")
+
+          m.replace("Hook:drawScore",
+                    /(;(\w+)=Math\.max\(\2,(\w+\(\))\);)0!=\2&&/,
+                    "$1(window.agar.hooks.drawScore&&window.agar.hooks.drawScore($3))||0!=$2&&")
+
+          m.replace("Hook:beforeDraw",
+                    /\w+\.scale\(\w+,\w+\);\w+\.translate\(-\w+,-\w+\);/,
+                    "$&" + hook("beforeDraw","") + ";")
+
+          m.replace("Hook:cellColor",
+                    /\|\|this\.color,/,
+                    "||" + hook("cellColor","this") + "$&")
       }},
 ]
 
@@ -196,7 +212,7 @@ function tryReplace(node, event) {
             }
         },
         get: function() {
-            return "window.agar={};" + this.reset + this.text
+            return "window.agar={hooks:{}};" + this.reset + this.text
         }
     }
 
