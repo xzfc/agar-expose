@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     3.3
+// @version     3.4
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
