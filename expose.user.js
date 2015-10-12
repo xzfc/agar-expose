@@ -114,6 +114,15 @@ var allRules = [
                     /\w+\?\(\w\.globalAlpha=\w+,/,
                     "window.agar.showStartupBg && " + "$&",
                     "true")
+
+          var vAlive = /\((\w+)\[(\w+)\]==this\){\1\.splice\(\2,1\);/.exec(m.text)
+          var vEaten = /0<this\.\w+&&(\w+)\.push\(this\)}/.exec(m.text)
+          if (vAlive && vEaten)
+              m.replace("aliveCellsList;eatenCellsList",
+                        RegExp(vAlive[1] + "=\\[\\];" + vEaten[1] + "=\\[\\];"),
+                        'window.agar.aliveCellsList=' + vAlive[1] + '=[];' + 'window.agar.eatenCellsList=' + vEaten[1] + '=[];')
+          else
+              console.error("Expose: can't find vAlive or vEaten")
       }},
 ]
 
