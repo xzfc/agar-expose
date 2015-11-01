@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     3.4
+// @version     3.5
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -20,7 +20,7 @@ function hook(name, args) {
 
 var allRules = [
     { hostname: ["agar.io"],
-      scriptTextRe: /console\.log\("socket open"\);/,
+      scriptUriRe: /^http:\/\/agar\.io\/main_out\.js/,
       replace: function (m) {
           m.replace("allCells",
                     /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/,
