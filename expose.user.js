@@ -54,7 +54,7 @@ var allRules = [
                     "$&" + "window.agar.dimensions=[$1,$2,$3,$4],",
                     JSON.stringify([-dd,-dd,dd,dd]))
 
-          var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);c\\+=4;"
+          var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);\\w+\\+=4;"
           var text = m.text
           true &&
               m.replace("rawViewport:x,y;disableRendering:1",
@@ -78,7 +78,7 @@ var allRules = [
                     "$&" + m.reset)
 
           m.replace("scale",
-                    /function \w+\(\w+\){[^;]+;1>(\w+)&&\(\1=1\)/,
+                    /function \w+\(\w+\){\w+\.preventDefault\(\);[^;]+;1>(\w+)&&\(\1=1\)/,
                     ";" + makeProperty("scale", "$1") + ";" + "$&")
 
           m.replace("minScale",
@@ -106,9 +106,9 @@ var allRules = [
                     "$&")
 
           m.replace("drawSkin;Hook:afterDrawSkin",
-                    /;null!=(\w+)\&\&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+\.drawImage\(\w+,this\.\w+-this\.size)(,this\.\w+-this\.\w+)(,2\*this\.size)(,2\*this\.size)\),(\w+\.restore\(\))\);/,
-                    ";if(null!=$1){$2;if(!$1.big)$3;$4*expose_ssx2$5*expose_ssx2$6*expose_ssx2$7*expose_ssx2);$8;}" + hook("afterDrawSkin", "a,this") + ";")
-
+                    /;null!=(\w+)&&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+=Math\.max\(this.size,this\.\w+\)),(\w+\.drawImage\(\w+,)(this\.x-\w+-5),(this\.y-\w+-5),(2\*\w+\+10),(2\*\w+\+10)\),(\w+\.restore\(\))\);/,
+                    ";if(null!=$1){$2;if(!$1.big)$3;$4;$5($6)*expose_ssx2,($7)*expose_ssx2,($8)*expose_ssx2,($9)*expose_ssx2);$10;}" + hook("afterDrawSkin", "a,this") + ";")
+          
           m.replace("drawPellets",
                     /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
                     "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}",
@@ -133,12 +133,12 @@ var allRules = [
                     "$1(window.agar.hooks.drawScore&&window.agar.hooks.drawScore($3))||0!=$2&&")
 
           m.replace("Hook:beforeDraw",
-                    /\w+\.scale\(\w+,\w+\);\w+\.translate\(-\w+,-\w+\);/,
+                    /\w+\.scale\(\w+,\w+\);\w+\.translate\(-\w+,\s+-\w+\);/,
                     "$&" + hook("beforeDraw","") + ";")
 
           m.replace("Hook:cellColor",
-                    /\|\|this\.color,/,
-                    "||" + hook("cellColor","this") + "$&")
+                    /(\w+=)(this\.color;)/,
+                    "$1" + hook("cellColor","this") + "|| $2")
       }},
 ]
 
