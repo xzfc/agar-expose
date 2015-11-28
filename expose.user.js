@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     3.6
+// @version     4.0
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -8,140 +8,154 @@
 // @grant       none
 // ==/UserScript==
 
-function makeProperty(name, varname) {
-    return "'" + name + "' in window.agar || " +
-        "Object.defineProperty( window.agar, '"+name+"', " +
-        "{get:function(){return "+varname+"},set:function(){"+varname+"=arguments[0]},enumerable:true})"
-}
-
-function hook(name, args) {
-    return "window.agar.hooks." + name + "&&window.agar.hooks." + name + "(" + args + ")"
-}
-
 var allRules = [
     { hostname: ["agar.io"],
       scriptUriRe: /^http:\/\/agar\.io\/main_out\.js/,
       replace: function (m) {
-          m.replace("allCells",
+          m.removeNewlines()
+
+          m.replace("var:allCells",
                     /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/,
-                    "$1" + "window.agar.allCells=$2;" + "$2$3",
-                    '{}')
+                    "$1" + "$v=$2;" + "$2$3",
+                    "$v = {}")
 
-          m.replace("myCells",
+          m.replace("var:myCells",
                     /(case 32:)(\w+)(\.push)/,
-                    "$1" + "window.agar.myCells=$2;" + "$2$3",
-                    '[]')
+                    "$1" + "$v=$2;" + "$2$3",
+                    "$v = []")
 
-          m.replace("top",
+          m.replace("var:top",
                     /case 49:[^:]+?(\w+)=\[];/,
-                    "$&" + "window.agar.top=$1;",
-                    '[]')
+                    "$&" + "$v=$1;",
+                    "$v = []")
 
-          m.replace("ws",
+          m.replace("var:ws",
                     /new WebSocket\((\w+)[^;]+?;/,
-                    "$&" + "window.agar.ws=$1;",
-                    '""')
+                    "$&" + "$v=$1;",
+                    "$v = ''")
 
-          m.replace("topTeams",
+          m.replace("var:topTeams",
                     /case 50:(\w+)=\[];/,
-                    "$&" + "window.agar.topTeams=$1;",
-                    '[]')
+                    "$&" + "$v=$1;",
+                    "$v = []")
 
           var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\);\\w+\\+=8;\\n?"
           var dd = 7071.067811865476
-          m.replace("dimensions",
+          m.replace("var:dimensions",
                     RegExp("case 64:"+dr+dr+dr+dr),
-                    "$&" + "window.agar.dimensions=[$1,$2,$3,$4],",
-                    JSON.stringify([-dd,-dd,dd,dd]))
+                    "$&" + "$v = [$1,$2,$3,$4],",
+                    "$v = " + JSON.stringify([-dd,-dd,dd,dd]))
 
           var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);\\w+\\+=4;"
-          var text = m.text
-          true &&
-              m.replace("rawViewport:x,y;disableRendering:1",
+          m.save() &&
+              m.replace("var:rawViewport:x,y var:disableRendering:1",
                         /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
-                        "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;" +
-                        "if(window.agar.disableRendering)return;") &&
-              m.replace("disableRendering:2;Hook:skipCellDraw",
+                        "$&" + "$v0.x=$1; $v0.y=$2; if($v1)return;") &&
+              m.replace("var:disableRendering:2 hook:skipCellDraw",
                         /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.\w+;)/,
-                        "$1" + "if(window.agar.disableRendering||" +  hook("skipCellDraw", "this") + ")return;" + "$2") &&
-              m.replace("rawViewport:scale",
-                /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
-                "window.agar.rawViewport.scale=$1;" + "$&") &&
-              m.replace("rawViewport.x,y,scale",
-                RegExp("case 17:"+vr+vr+vr),
-                "$&" + "window.agar.rawViewport.x=$1;window.agar.rawViewport.y=$2;window.agar.rawViewport.scale=$3;") &&
-              (m.reset += "window.agar.rawViewport={x:0,y:0,scale:1};" + "agar.disableRendering=false;") ||
-              (m.text = text)
+                        "$1" + "if($v || $H(this))return;" + "$2") &&
+              m.replace("var:rawViewport:scale",
+                        /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
+                        "$v.scale=$1;" + "$&") &&
+              m.replace("var:rawViewport:x,y,scale",
+                        RegExp("case 17:"+vr+vr+vr),
+                        "$&" + "$v.x=$1; $v.y=$2; $v.scale=$3;") &&
+              m.reset_("window.agar.rawViewport = {x:0,y:0,scale:1};" +
+                       "window.agar.disableRendering = false;") ||
+              m.restore()
 
           m.replace("reset",
                     /new WebSocket\(\w+[^;]+?;/,
                     "$&" + m.reset)
 
-          m.replace("scale",
+          m.replace("property:scale",
                     /function \w+\(\w+\){\w+\.preventDefault\(\);[^;]+;1>(\w+)&&\(\1=1\)/,
-                    ";" + makeProperty("scale", "$1") + ";" + "$&")
+                    `;${makeProperty("scale", "$1")};$&`)
 
-          m.replace("minScale",
+          m.replace("var:minScale",
                     /;1>(\w+)&&\(\1=1\)/,
-                    ";window.agar.minScale>$1&&($1=window.agar.minScale)",
-                    "1")
+                    ";$v>$1 && ($1=$v)",
+                    "$v = 1")
 
-          m.replace("region",
+          m.replace("var:region",
                     /console\.log\("Find "\+(\w+\+\w+)\);/,
-                    "$&" + "window.agar.region=$1;",
-                    '""')
+                    "$&" + "$v=$1;",
+                    "$v = ''")
 
-          m.replace("isVirus",
+          m.replace("cellProperty:isVirus",
                     /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/,
                     "$1$4.isVirus=$3")
 
-          m.replace("dommousescroll",
+          m.replace("var:dommousescroll",
                     /("DOMMouseScroll",)(\w+),/,
-                    "$1(window.agar.dommousescroll=$2),")
+                    "$1($v=$2),")
 
-          m.replace("skin",
+          m.replace("var:skinF hook:cellSkin",
                     /;null!=(\w+)\&\&\(\w+\.save\(\),\w+\.clip\(\),/,
-                    ";if (typeof window.agar.skinF === 'function') $1 = window.agar.skinF(this, $1)" +
-                    ";var expose_ssx2 = $1&&$1.big?2:1" +
+                    ";if($v) $1 = $v(this, $1)" +
+                    ";if($h) $1 = $h(this, $1)" +
                     "$&")
 
-          m.replace("drawSkin;Hook:afterDrawSkin",
-                    /;null!=(\w+)&&\((\w+\.save\(\)),(\w+\.clip\(\)),(\w+=Math\.max\(this.size,this\.\w+\)),(\w+\.drawImage\(\w+,)(this\.x-\w+-5),(this\.y-\w+-5),(2\*\w+\+10),(2\*\w+\+10)\),(\w+\.restore\(\))\);/,
-                    ";if(null!=$1){$2;if(!$1.big)$3;$4;$5($6)*expose_ssx2,($7)*expose_ssx2,($8)*expose_ssx2,($9)*expose_ssx2);$10;}" + hook("afterDrawSkin", "a,this") + ";")
-          
-          m.replace("drawPellets",
-                    /(if\s*\(\w+)\)\s*(\w+\.beginPath\(\)),\s*(\w+\.arc\(this\.\w+,\s*this\.\w+,\s*this\.size\s*\+\s*5,\s*0,\s*)(2\s*\*\s*Math\.PI)(,\s*!1\);)/,
-                    "$1) {$2; $3$4*((this.size<20) && !window.agar.drawPellets ? 0:1)$5}",
-                    "true")
+          m.replace("bigSkin",
+                    /(null!=(\w+)&&\((\w+)\.save\(\),)(\3\.clip\(\),\w+=)(Math\.max\(this\.size,this\.\w+\))/,
+                    "$1" + "$2.big||" + "$4" + "($2.big?2:1)*" + "$5")
 
-          m.replace("showStartupBg",
+          m.replace("hook:afterCellStroke",
+                    /\((\w+)\.strokeStyle="#000000",\1\.globalAlpha\*=\.1,\1\.stroke\(\)\);\1\.globalAlpha=1;/,
+                    "$&" + "$H(this);")
+
+          m.replace("var:showStartupBg",
                     /\w+\?\(\w\.globalAlpha=\w+,/,
-                    "window.agar.showStartupBg && " + "$&",
-                    "true")
+                    "$v && $&",
+                    "$v = true")
 
           var vAlive = /\((\w+)\[(\w+)\]==this\){\1\.splice\(\2,1\);/.exec(m.text)
           var vEaten = /0<this\.\w+&&(\w+)\.push\(this\)}/.exec(m.text)
           if (vAlive && vEaten)
-              m.replace("aliveCellsList;eatenCellsList",
+              m.replace("var:aliveCellsList var:eatenCellsList",
                         RegExp(vAlive[1] + "=\\[\\];" + vEaten[1] + "=\\[\\];"),
-                        'window.agar.aliveCellsList=' + vAlive[1] + '=[];' + 'window.agar.eatenCellsList=' + vEaten[1] + '=[];')
+                        "$v0=" + vAlive[1] + "=[];" + "$v1=" + vEaten[1] + "=[];",
+                        "$v0 = []; $v1 = []")
           else
               console.error("Expose: can't find vAlive or vEaten")
 
-          m.replace("Hook:drawScore",
+          m.replace("hook:drawScore",
                     /(;(\w+)=Math\.max\(\2,(\w+\(\))\);)0!=\2&&/,
-                    "$1(window.agar.hooks.drawScore&&window.agar.hooks.drawScore($3))||0!=$2&&")
+                    "$1($H($3))||0!=$2&&")
 
-          m.replace("Hook:beforeDraw",
-                    /\w+\.scale\(\w+,\w+\);\w+\.translate\(-\w+,\s+-\w+\);/,
-                    "$&" + hook("beforeDraw","") + ";")
+          m.replace("hook:beforeTransform hook:beforeDraw var:drawScale",
+                    /(\w+)\.save\(\);\1\.translate\((\w+\/2,\w+\/2)\);\1\.scale\((\w+),\3\);\1\.translate\((-\w+,-\w+)\);/,
+                    "$v = $3;$H0($1,$2,$3,$4);" + "$&" + "$H1($1,$2,$3,$4);",
+                    "$v = 1")
 
-          m.replace("Hook:cellColor",
-                    /(\w+=)(this\.color;)/,
-                    "$1" + hook("cellColor","this") + "|| $2")
+          m.replace("hook:cellColor",
+                    /(\w+=)this\.color;/,
+                    "$1 ($h && $h(this, this.color) || this.color);")
+
+          m.replace("var:drawGrid",
+                    /(\w+)\.globalAlpha=(\.2\*\w+);/,
+                    "if(!$v)return;" + "$&",
+                    "$v = true")
+
+          m.replace("hook:drawCellMass",
+                    /&&\((\w+\|\|0==\w+\.length&&\(!this\.\w+\|\|this\.\w+\)&&20<this\.size)\)&&/,
+                    "&&( $h ? $h(this,$1) : ($1) )&&")
+
+          m.replace("hook:cellMassText",
+                    /(\.\w+)(\(~~\(this\.size\*this\.size\/100\)\))/,
+                    "$1( $h ? $h(this,$2) : $2 )")
+
+          m.replace("hook:cellMassTextScale",
+                    /(\.\w+)\((this\.\w+\(\))\)([\s\S]{0,1000})\1\(\2\/2\)/,
+                    "$1($2)$3$1( $h ? $h(this,$2/2) : ($2/2) )")
       }},
 ]
 
+function makeProperty(name, varname) {
+    return "'" + name + "' in window.agar || " +
+        "Object.defineProperty( window.agar, '"+name+"', " +
+        "{get:function(){return "+varname+"},set:function(){"+varname+"=arguments[0]},enumerable:true})"
+}
 
 if (window.top != window.self)
     return
@@ -199,17 +213,55 @@ function tryReplace(node, event) {
     var mod = {
         reset: "",
         text: null,
-        replace: function(what, from, to, defaultValue) {
-            var newText = this.text.replace(from, to)
+        history: [],
+        save() {
+            this.history.push({reset:this.reset, text:this.text})
+            return true
+        },
+        restore() {
+            var state = this.history.pop()
+            this.reset = state.reset
+            this.text = state.text
+            return true
+        },
+        reset_(reset) {
+            this.reset += reset
+            return true
+        },
+        replace(what, from, to, reset) {
+            var vars = [], hooks = []
+            what.split(" ").forEach((x) => {
+                x = x.split(":")
+                x[0] === "var" && vars.push(x[1])
+                x[0] === "hook" && hooks.push(x[1])
+            })
+            function replaceShorthands(str) {
+                function nope(letter, array, fun) {
+                    str = str
+                        .split(new RegExp('\\$' + letter + '([0-9]?)'))
+                        .map((v,n) => n%2 ? fun(array[v||0]) : v)
+                        .join("")
+                }
+                nope('v', vars, (name) => "window.agar." + name)
+                nope('h', hooks, (name) => "window.agar.hooks." + name)
+                nope('H', hooks, (name) =>
+                     "window.agar.hooks." + name + "&&" +
+                     "window.agar.hooks." + name)
+                return str
+            }
+            var newText = this.text.replace(from, replaceShorthands(to))
             if(newText === this.text) {
-                console.error("Expose: " + what + " replacement failed!")
+                console.error("Expose: `" + what + "` replacement failed!")
                 return false
             } else {
                 this.text = newText
-                if(defaultValue !== undefined)
-                    this.reset += "window.agar." + what + "=" + defaultValue + ";"
+                if (reset)
+                    this.reset += replaceShorthands(reset) + ";"
                 return true
             }
+        },
+        removeNewlines() {
+            this.text = this.text.replace(/([,])\n/mg, "$1")
         },
         get: function() {
             return "window.agar={hooks:{}};" + this.reset + this.text
