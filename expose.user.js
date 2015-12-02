@@ -148,6 +148,18 @@ var allRules = [
           m.replace("hook:cellMassTextScale",
                     /(\.\w+)\((this\.\w+\(\))\)([\s\S]{0,1000})\1\(\2\/2\)/,
                     "$1($2)$3$1( $h ? $h(this,$2/2) : ($2/2) )")
+
+          var template = (key,n) =>
+              `this\\.${key}=\\w+\\*\\(this\\.(\\w+)-this\\.(\\w+)\\)\\+this\\.\\${n};`
+          var re = new RegExp(template('x', 2) + template('y', 4) + template('size', 6))
+          var match = re.exec(m.text)
+          if (match) {
+              m.cellProp.nx = match[1]
+              m.cellProp.ny = match[3]
+              m.cellProp.nSize = match[5]
+          } else
+              console.error("Expose: cellProp:x,y,size search failed!")
+
       }},
 ]
 
@@ -214,6 +226,7 @@ function tryReplace(node, event) {
         reset: "",
         text: null,
         history: [],
+        cellProp: {},
         save() {
             this.history.push({reset:this.reset, text:this.text})
             return true
@@ -264,7 +277,9 @@ function tryReplace(node, event) {
             this.text = this.text.replace(/([,\/])\n/mg, "$1")
         },
         get: function() {
-            return "window.agar={hooks:{}};" + this.reset + this.text
+            var cellProp = JSON.stringify(this.cellProp)
+            return `window.agar={hooks:{},cellProp:${cellProp}};` +
+                this.reset + this.text
         }
     }
 
