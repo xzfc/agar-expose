@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.0
+// @version     4.1
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -52,11 +52,11 @@ var allRules = [
                         /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
                         "$&" + "$v0.x=$1; $v0.y=$2; if($v1)return;") &&
               m.replace("var:disableRendering:2 hook:skipCellDraw",
-                        /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.\w+;)/,
+                        /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.[\w$]+;)/,
                         "$1" + "if($v || $H(this))return;" + "$2") &&
               m.replace("var:rawViewport:scale",
-                        /\w+=(Math\.pow\(Math\.min\(64\/\w+,1\),\.4\))/,
-                        "$v.scale=$1;" + "$&") &&
+                        /Math\.pow\(Math\.min\(64\/\w+,1\),\.4\)/,
+                        "($v.scale=$&)") &&
               m.replace("var:rawViewport:x,y,scale",
                         RegExp("case 17:"+vr+vr+vr),
                         "$&" + "$v.x=$1; $v.y=$2; $v.scale=$3;") &&
@@ -110,14 +110,14 @@ var allRules = [
                     "$v = true")
 
           var vAlive = /\((\w+)\[(\w+)\]==this\){\1\.splice\(\2,1\);/.exec(m.text)
-          var vEaten = /0<this\.\w+&&(\w+)\.push\(this\)}/.exec(m.text)
+          var vEaten = /0<this\.[$\w+]&&(\w+)\.push\(this\)}/.exec(m.text)
+          !vAlive && console.error("Expose: can't find vAlive")
+          !vEaten && console.error("Expose: can't find vEaten")
           if (vAlive && vEaten)
               m.replace("var:aliveCellsList var:eatenCellsList",
                         RegExp(vAlive[1] + "=\\[\\];" + vEaten[1] + "=\\[\\];"),
                         "$v0=" + vAlive[1] + "=[];" + "$v1=" + vEaten[1] + "=[];",
                         "$v0 = []; $v1 = []")
-          else
-              console.error("Expose: can't find vAlive or vEaten")
 
           m.replace("hook:drawScore",
                     /(;(\w+)=Math\.max\(\2,(\w+\(\))\);)0!=\2&&/,
@@ -261,7 +261,7 @@ function tryReplace(node, event) {
             }
         },
         removeNewlines() {
-            this.text = this.text.replace(/([,])\n/mg, "$1")
+            this.text = this.text.replace(/([,\/])\n/mg, "$1")
         },
         get: function() {
             return "window.agar={hooks:{}};" + this.reset + this.text
