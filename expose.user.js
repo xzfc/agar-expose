@@ -128,6 +128,10 @@ var allRules = [
                     "$v = $3;$H0($1,$2,$3,$4);" + "$&" + "$H1($1,$2,$3,$4);",
                     "$v = 1")
 
+          m.replace("hook:afterDraw",
+                    /(\w+)\.restore\(\);(\w+)&&\2\.width&&\1\.drawImage/,
+                    "$H();" + "$&")
+
           m.replace("hook:cellColor",
                     /(\w+=)this\.color;/,
                     "$1 ($h && $h(this, this.color) || this.color);")
