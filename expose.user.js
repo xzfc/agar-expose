@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.2
+// @version     4.3
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -91,10 +91,11 @@ var allRules = [
                     "$1($v=$2),")
 
           m.replace("var:skinF hook:cellSkin",
-                    /;null!=(\w+)\&\&\(\w+\.save\(\),\w+\.clip\(\),/,
-                    ";if($v) $1 = $v(this, $1)" +
-                    ";if($h) $1 = $h(this, $1)" +
-                    "$&")
+                    /(\w+.fill\(\))(;null!=(\w+))/,
+                    "$1;" +
+                    "if($v)$3 = $v(this,$3);" +
+                    "if($h)$3 = $h(this,$3);" +
+                    "$2");
 
           m.replace("bigSkin",
                     /(null!=(\w+)&&\((\w+)\.save\(\),)(\3\.clip\(\),\w+=)(Math\.max\(this\.size,this\.\w+\))/,
@@ -110,7 +111,7 @@ var allRules = [
                     "$v = true")
 
           var vAlive = /\((\w+)\[(\w+)\]==this\){\1\.splice\(\2,1\);/.exec(m.text)
-          var vEaten = /0<this\.[$\w+]&&(\w+)\.push\(this\)}/.exec(m.text)
+          var vEaten = /0<this\.[$\w]+&&(\w+)\.push\(this\)}/.exec(m.text)
           !vAlive && console.error("Expose: can't find vAlive")
           !vEaten && console.error("Expose: can't find vEaten")
           if (vAlive && vEaten)
