@@ -29,11 +29,6 @@ var allRules = [
                     "$&" + "$v=$1;",
                     "$v = []")
 
-          m.replace("var:ws",
-                    /new WebSocket\((\w+)[^;]+?;/,
-                    "$&" + "$v=$1;",
-                    "$v = ''")
-
           m.replace("var:topTeams",
                     /case 50:(\w+)=\[];/,
                     "$&" + "$v=$1;",
@@ -68,9 +63,10 @@ var allRules = [
                        "window.agar.disableRendering = false;") ||
               m.restore()
 
-          m.replace("reset",
-                    /new WebSocket\(\w+[^;]+?;/,
-                    "$&" + m.reset)
+          m.replace("reset hook:connect var:ws var:webSocket",
+                    /new WebSocket\((\w+)\);/,
+                    "$v1 = $&; $v0=$1;" + m.reset + "$H();",
+                    "$v0 = ''; $v1 = null;")
 
           m.replace("property:scale",
                     /function \w+\(\w+\){\w+\.preventDefault\(\);[^;]+;1>(\w+)&&\(\1=1\)/,
