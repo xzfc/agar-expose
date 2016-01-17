@@ -49,10 +49,6 @@ var allRules = [
               m.replace("var:disableRendering:2 hook:skipCellDraw",
                         /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.[\w$]+;)/,
                         "$1" + "if($v || $H(this))return;" + "$2") &&
-            m.replace("var:simpleCellDraw",
-                       /(if\()(\w+\)\w+\.beginPath\(\))/,
-                        "$1$v||$2",
-                        "$v=false") &&
               m.replace("var:rawViewport:scale",
                         /Math\.pow\(Math\.min\(64\/\w+,1\),\.4\)/,
                         "($v.scale=$&)") &&
@@ -153,6 +149,11 @@ var allRules = [
           m.replace("hook:cellMassTextScale",
                     /(\.\w+)\((this\.\w+\(\))\)([\s\S]{0,1000})\1\(\2\/2\)/,
                     "$1($2)$3$1( $h ? $h(this,$2/2) : ($2/2) )")
+
+          m.replace("var:simpleCellDraw",
+                    /(if\()(\w+\)\w+\.beginPath\(\))/,
+                    "$1$v||$2",
+                    "$v=false")
 
           var template = (key,n) =>
               `this\\.${key}=\\w+\\*\\(this\\.(\\w+)-this\\.(\\w+)\\)\\+this\\.\\${n};`
