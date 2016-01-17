@@ -150,6 +150,11 @@ var allRules = [
                     /(\.\w+)\((this\.\w+\(\))\)([\s\S]{0,1000})\1\(\2\/2\)/,
                     "$1($2)$3$1( $h ? $h(this,$2/2) : ($2/2) )")
 
+          m.replace("var:enableDirectionSending",
+                    /;64>(\w+)\*\1\+(\w+)\*\2/,
+                    ";if(!$v)return" + "$&",
+                    "$v = true")
+
           m.replace("var:simpleCellDraw",
                     /(if\()(\w+\)\w+\.beginPath\(\))/,
                     "$1$v||$2",
