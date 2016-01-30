@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.5
+// @version     4.6
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -159,6 +159,10 @@ var allRules = [
                     /(if\()(\w+\)\w+\.beginPath\(\))/,
                     "$1$v||$2",
                     "$v=false")
+
+          m.replace("hook:updateLeaderboard",
+                    /({\w+=null;)(if\(null!=)/,
+                    "$1 if($H())return; $2")
 
           var template = (key,n) =>
               `this\\.${key}=\\w+\\*\\(this\\.(\\w+)-this\\.(\\w+)\\)\\+this\\.\\${n};`
