@@ -93,10 +93,6 @@ var allRules = [
                     "if($h)$3 = $h(this,$3);" +
                     "$2");
 
-          m.replace("bigSkin",
-                    /(null!=(\w+)&&\((\w+)\.save\(\),)(\3\.clip\(\),\w+=)(Math\.max\(this\.size,this\.\w+\))/,
-                    "$1" + "$2.big||" + "$4" + "($2.big?2:1)*" + "$5")
-
           m.replace("hook:afterCellStroke",
                     /\((\w+)\.strokeStyle="#000000",\1\.globalAlpha\*=\.1,\1\.stroke\(\)\);\1\.globalAlpha=1;/,
                     "$&" + "$H(this);")
