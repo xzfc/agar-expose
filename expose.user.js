@@ -126,8 +126,8 @@ var allRules = [
                     "$H();" + "$&")
 
           m.replace("hook:cellColor",
-                    /(\w+=)this\.color;/,
-                    "$1 ($h && $h(this, this.color) || this.color);")
+                    /(\w+=)this\.color,/,
+                    "$1 ($h && $h(this, this.color) || this.color),")
 
           m.replace("var:drawGrid",
                     /(\w+)\.globalAlpha=(\.2\*\w+);/,
@@ -152,8 +152,8 @@ var allRules = [
                     "$v = true")
 
           m.replace("var:simpleCellDraw",
-                    /(if\()(\w+\)\w+\.beginPath\(\))/,
-                    "$1$v||$2",
+                    /(:function\(\){)(var a=10;)/,
+                    "$1 if($v)return true;$2",
                     "$v=false")
 
           m.replace("hook:updateLeaderboard",
