@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.7
+// @version     4.8
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -36,9 +36,9 @@ var allRules = [
 
           var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\);\\w+\\+=8;\\n?"
           var dd = 7071.067811865476
-          m.replace("var:dimensions",
+          m.replace("var:dimensions hook:dimensionsUpdated",
                     RegExp("case 64:"+dr+dr+dr+dr),
-                    "$&" + "$v = [$1,$2,$3,$4],",
+                    "$&" + "$v = [$1,$2,$3,$4],$H($1,$2,$3,$4),",
                     "$v = " + JSON.stringify([-dd,-dd,dd,dd]))
 
           var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);\\w+\\+=4;"
