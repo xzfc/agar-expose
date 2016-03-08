@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.8
+// @version     4.9
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
@@ -44,7 +44,7 @@ var allRules = [
           var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);\\w+\\+=4;"
           m.save() &&
               m.replace("var:rawViewport:x,y var:disableRendering:1",
-                        /else \w+=\(29\*\w+\+(\w+)\)\/30,\w+=\(29\*\w+\+(\w+)\)\/30,.*?;/,
+                        /else \w+=\(5\*\w+\+(\w+)\)\/6,\w+=\(5\*\w+\+(\w+)\)\/6,.*?;/,
                         "$&" + "$v0.x=$1; $v0.y=$2; if($v1)return;") &&
               m.replace("var:disableRendering:2 hook:skipCellDraw",
                         /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.[\w$]+;)/,
@@ -285,7 +285,7 @@ function tryReplace(node, event) {
             }
         },
         removeNewlines() {
-            this.text = this.text.replace(/([,\/])\n/mg, "$1")
+            this.text = this.text.replace(/([,\/;])\n/mg, "$1")
         },
         get: function() {
             var cellProp = JSON.stringify(this.cellProp)
