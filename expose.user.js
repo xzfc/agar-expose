@@ -1,176 +1,119 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     4.9
+// @version     5.0
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
-// @run-at      document-start
+// @run-at      document-body
 // @grant       none
 // ==/UserScript==
 
 var allRules = [
     { hostname: ["agar.io"],
-      scriptUriRe: /^http:\/\/agar\.io\/main_out\.js/,
+      scriptUriRe: /^http:\/\/agar\.io\/agario\.core\.js/,
       replace: function (m) {
           m.removeNewlines()
+          m.replace("var:buffer",
+                    /=new ArrayBuffer/g,
+                    "=$v" + "$&")
+      },
+      init() {
+          window.agar = {
+              hooks: {},
+              cellProp: {},
+              enableDirectionSending: true,
+          }
 
-          m.replace("var:allCells",
-                    /(=null;)(\w+)(.hasOwnProperty\(\w+\)?)/,
-                    "$1" + "$v=$2;" + "$2$3",
-                    "$v = {}")
+          window.OriginalWebSocket = window.WebSocket
+          window.WebSocket = NewWebSocket
 
-          m.replace("var:myCells",
-                    /(case 32:)(\w+)(\.push)/,
-                    "$1" + "$v=$2;" + "$2$3",
-                    "$v = []")
+          return
 
-          m.replace("var:top",
-                    /case 49:[^:]+?(\w+)=\[];/,
-                    "$&" + "$v=$1;",
-                    "$v = []")
+          function refer(master, slave, prop) {
+              Object.defineProperty(master, prop, {
+                  get: () => slave[prop],
+                  set: val => slave[prop] = val,
+                  enumerable: true,
+                  configurable: true
+              })
+          }
+          function handleMessage(msg) {
+              var a = new Uint8Array(msg)
+              if (a[0] !== 49)
+                  return
+              var i, pos = 5
+              window.agar.top = []
+              for (i = 0; i < a[1]; i++) {
+                  var id = a[pos]; pos += 4
+                  var name = "", c1, c2, c3
+                  while (c1 = a[pos++])
+                      switch (c1 >> 4) {
+                          case 0: case 1: case 2: case 3:
+                          case 4: case 5: case 6: case 7:
+                              name += String.fromCharCode(c1)
+                              break
+                          case 12: case 13:
+                              c2 = a[pos++]
+                              name += String.fromCharCode((c1 & 0x1F) << 6 |
+                                                          (c2 & 0x3F))
+                              break
+                          case 14:
+                              c2 = a[pos++]
+                              c3 = a[pos++]
+                              name += String.fromCharCode((c1 & 0x0F) << 12 |
+                                                          (c2 & 0x3F) <<  6 |
+                                                          (c3 & 0x3F) <<  0)
+                      }
+                      window.agar.top.push({id, name})
+              }
+          }
+          function NewWebSocket(url, protocols) {
+              if (protocols === undefined)
+                  protocols = []
 
-          m.replace("var:topTeams",
-                    /case 50:(\w+)=\[];/,
-                    "$&" + "$v=$1;",
-                    "$v = []")
+              if (window.agar) {
+                  window.agar.ws = url
+                  window.agar.webSocket = this
+              }
 
-          var dr = "(\\w+)=\\w+\\.getFloat64\\(\\w+,!0\\);\\w+\\+=8;\\n?"
-          var dd = 7071.067811865476
-          m.replace("var:dimensions hook:dimensionsUpdated",
-                    RegExp("case 64:"+dr+dr+dr+dr),
-                    "$&" + "$v = [$1,$2,$3,$4],$H($1,$2,$3,$4),",
-                    "$v = " + JSON.stringify([-dd,-dd,dd,dd]))
+              var ws = new window.OriginalWebSocket(url, protocols)
+              refer(this, ws, 'binaryType')
+              refer(this, ws, 'bufferedAmount')
+              refer(this, ws, 'extensions')
+              refer(this, ws, 'protocol')
+              refer(this, ws, 'readyState')
+              refer(this, ws, 'url')
 
-          var vr = "(\\w+)=\\w+\\.getFloat32\\(\\w+,!0\\);\\w+\\+=4;"
-          m.save() &&
-              m.replace("var:rawViewport:x,y var:disableRendering:1",
-                        /else \w+=\(5\*\w+\+(\w+)\)\/6,\w+=\(5\*\w+\+(\w+)\)\/6,.*?;/,
-                        "$&" + "$v0.x=$1; $v0.y=$2; if($v1)return;") &&
-              m.replace("var:disableRendering:2 hook:skipCellDraw",
-                        /(\w+:function\(\w+\){)(if\(this\.\w+\(\)\){\+\+this\.[\w$]+;)/,
-                        "$1" + "if($v || $H(this))return;" + "$2") &&
-              m.replace("var:rawViewport:scale",
-                        /Math\.pow\(Math\.min\(64\/\w+,1\),\.4\)/,
-                        "($v.scale=$&)") &&
-              m.replace("var:rawViewport:x,y,scale",
-                        RegExp("case 17:"+vr+vr+vr),
-                        "$&" + "$v.x=$1; $v.y=$2; $v.scale=$3;") &&
-              m.reset_("window.agar.rawViewport = {x:0,y:0,scale:1};" +
-                       "window.agar.disableRendering = false;") ||
-              m.restore()
+              this.send = data => {
+                  if (data[0] === 16 && !window.agar.enableDirectionSending)
+                      return
+                  ws.send.call(ws, data)
+              }
+              this.close = () => ws.close.call(ws)
 
-          m.replace("reset hook:connect var:ws var:webSocket",
-                    /new WebSocket\((\w+)\);/,
-                    "$v1 = $&; $v0=$1;" + m.reset + "$H();",
-                    "$v0 = ''; $v1 = null;")
+              this.onopen = _ => {}
+              this.onclose = _ => {}
+              this.onerror = _ => {}
+              this.onmessage = _ => {}
 
-          m.replace("property:scale",
-                    /function \w+\(\w+\){\w+\.preventDefault\(\);[^;]+;1>(\w+)&&\(\1=1\)/,
-                    `;${makeProperty("scale", "$1")};$&`)
-
-          m.replace("var:minScale",
-                    /;1>(\w+)&&\(\1=1\)/,
-                    ";$v>$1 && ($1=$v)",
-                    "$v = 1")
-
-          m.replace("var:region",
-                    /console\.log\("Find "\+(\w+\+\w+)\);/,
-                    "$&" + "$v=$1;",
-                    "$v = ''")
-
-          m.replace("cellProperty:isVirus",
-                    /((\w+)=!!\(\w+&1\)[\s\S]{0,400})((\w+).(\w+)=\2;)/,
-                    "$1$4.isVirus=$3")
-
-          m.replace("var:dommousescroll",
-                    /("DOMMouseScroll",)(\w+),/,
-                    "$1($v=$2),")
-
-          m.replace("var:skinF hook:cellSkin",
-                    /(\w+.fill\(\))(;null!=(\w+))/,
-                    "$1;" +
-                    "if($v)$3 = $v(this,$3);" +
-                    "if($h)$3 = $h(this,$3);" +
-                    "$2");
-
-          m.replace("hook:afterCellStroke",
-                    /\((\w+)\.strokeStyle="#000000",\1\.globalAlpha\*=\.1,\1\.stroke\(\)\);\1\.globalAlpha=1;/,
-                    "$&" + "$H(this);")
-
-          m.replace("var:showStartupBg",
-                    /\w+\?\(\w\.globalAlpha=\w+,/,
-                    "$v && $&",
-                    "$v = true")
-
-          var vAlive = /\((\w+)\[(\w+)\]==this\){\1\.splice\(\2,1\);/.exec(m.text)
-          var vEaten = /0<this\.[$\w]+&&(\w+)\.push\(this\)}/.exec(m.text)
-          !vAlive && console.error("Expose: can't find vAlive")
-          !vEaten && console.error("Expose: can't find vEaten")
-          if (vAlive && vEaten)
-              m.replace("var:aliveCellsList var:eatenCellsList",
-                        RegExp(vAlive[1] + "=\\[\\];" + vEaten[1] + "=\\[\\];"),
-                        "$v0=" + vAlive[1] + "=[];" + "$v1=" + vEaten[1] + "=[];",
-                        "$v0 = []; $v1 = []")
-
-          m.replace("hook:drawScore",
-                    /(;(\w+)=Math\.max\(\2,(\w+\(\))\);)0!=\2&&/,
-                    "$1($H($3))||0!=$2&&")
-
-          m.replace("hook:beforeTransform hook:beforeDraw var:drawScale",
-                    /(\w+)\.save\(\);\1\.translate\((\w+\/2,\w+\/2)\);\1\.scale\((\w+),\3\);\1\.translate\((-\w+,-\w+)\);/,
-                    "$v = $3;$H0($1,$2,$3,$4);" + "$&" + "$H1($1,$2,$3,$4);",
-                    "$v = 1")
-
-          m.replace("hook:afterDraw",
-                    /(\w+)\.restore\(\);(\w+)&&\2\.width&&\1\.drawImage/,
-                    "$H();" + "$&")
-
-          m.replace("hook:cellColor",
-                    /(\w+=)this\.color,/,
-                    "$1 ($h && $h(this, this.color) || this.color),")
-
-          m.replace("var:drawGrid",
-                    /(\w+)\.globalAlpha=(\.2\*\w+);/,
-                    "if(!$v)return;" + "$&",
-                    "$v = true")
-
-          m.replace("hook:drawCellMass",
-                    /&&\((\w+\|\|0==\w+\.length&&\(!this\.\w+\|\|this\.\w+\)&&20<this\.size)\)&&/,
-                    "&&( $h ? $h(this,$1) : ($1) )&&")
-
-          m.replace("hook:cellMassText",
-                    /(\.\w+)(\(~~\(this\.size\*this\.size\/100\)\))/,
-                    "$1( $h ? $h(this,$2) : $2 )")
-
-          m.replace("hook:cellMassTextScale",
-                    /(\.\w+)\((this\.\w+\(\))\)([\s\S]{0,1000})\1\(\2\/2\)/,
-                    "$1($2)$3$1( $h ? $h(this,$2/2) : ($2/2) )")
-
-          m.replace("var:enableDirectionSending",
-                    /;64>(\w+)\*\1\+(\w+)\*\2/,
-                    ";if(!$v)return" + "$&",
-                    "$v = true")
-
-          m.replace("var:simpleCellDraw",
-                    /(:function\(\){)(var a=10;)/,
-                    "$1 if($v)return true;$2",
-                    "$v=false")
-
-          m.replace("hook:updateLeaderboard",
-                    /({\w+=null;)(if\(null!=)/,
-                    "$1 if($H())return; $2")
-
-          var template = (key,n) =>
-              `this\\.${key}=\\w+\\*\\(this\\.(\\w+)-this\\.(\\w+)\\)\\+this\\.\\${n};`
-          var re = new RegExp(template('x', 2) + template('y', 4) + template('size', 6))
-          var match = re.exec(m.text)
-          if (match) {
-              m.cellProp.nx = match[1]
-              m.cellProp.ny = match[3]
-              m.cellProp.nSize = match[5]
-          } else
-              console.error("Expose: cellProp:x,y,size search failed!")
-
+              ws.onopen = event => {
+                  if (this.onopen)
+                      return this.onopen.call(ws, event)
+              }
+              ws.onmessage = event => {
+                  handleMessage(event.data)
+                  if (this.onmessage)
+                      return this.onmessage.call(ws, event)
+              }
+              ws.onclose = event => {
+                  if (this.onclose)
+                      return this.onclose.call(ws, event)
+              }
+              ws.onerror = event => {
+                  if (this.onerror)
+                      return this.onerror.call(ws, event)
+              }
+          }
       }},
 ]
 
@@ -205,8 +148,8 @@ if (isFirefox) {
     window.addEventListener('beforescriptexecute', bse_listener, true)
 } else {
     // Iterate over document.head child elements and look for `main_out.js`
-    for (var i = 0; i < document.head.childNodes.length; i++)
-        if (tryReplace(document.head.childNodes[i]))
+    for (var i = 0; i < document.body.childNodes.length; i++)
+        if (tryReplace(document.body.childNodes[i]))
             return
     // If there are no desired element in document.head, then wait until it appears
     function observerFunc(mutations) {
@@ -218,7 +161,7 @@ if (isFirefox) {
         }
     }
     var observer = new MutationObserver(observerFunc)
-    observer.observe(document.head, {childList: true})
+    observer.observe(document.body, {childList: true})
 }
 
 // Stage 3: Replace found element using rules
@@ -237,7 +180,6 @@ function tryReplace(node, event) {
         reset: "",
         text: null,
         history: [],
-        cellProp: {},
         save() {
             this.history.push({reset:this.reset, text:this.text})
             return true
@@ -288,17 +230,17 @@ function tryReplace(node, event) {
             this.text = this.text.replace(/([,\/;])\n/mg, "$1")
         },
         get: function() {
-            var cellProp = JSON.stringify(this.cellProp)
-            return `window.agar={hooks:{},cellProp:${cellProp}};` +
-                this.reset + this.text
+            return "window.exposeInit();" + this.reset + this.text
         }
     }
+
+    window.exposeInit = rules.init
 
     if (scriptEmbedded) {
         mod.text = node.textContent
         rules.replace(mod)
         if (isFirefox) {
-            document.head.removeChild(node)
+            document.body.removeChild(node)
             var script = document.createElement("script")
             script.textContent = mod.get()
             document.head.appendChild(script)
@@ -307,7 +249,7 @@ function tryReplace(node, event) {
         }
         console.log("Expose: replacement done")
     } else {
-        document.head.removeChild(node)
+        document.body.removeChild(node)
         var request = new XMLHttpRequest()
         request.onload = function() {
             var script = document.createElement("script")
