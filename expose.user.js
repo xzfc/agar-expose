@@ -1,12 +1,157 @@
 // ==UserScript==
 // @name        Agar.io Expose
-// @version     5.0
+// @version     5.1
 // @namespace   xzfc
 // @updateURL   https://raw.githubusercontent.com/xzfc/agar-expose/master/expose.user.js
 // @include     http://agar.io/*
 // @run-at      document-body
 // @grant       none
 // ==/UserScript==
+
+function BufReader(buf) {
+    var pos = 0
+    var view = new DataView(buf)
+
+    this.i8  = () => view.getInt8   ((pos += 1) - 1)
+    this.u8  = () => view.getUint8  ((pos += 1) - 1)
+    this.i16 = () => view.getInt16  ((pos += 2) - 2, true)
+    this.u16 = () => view.getUint16 ((pos += 2) - 2, true)
+    this.i32 = () => view.getInt32  ((pos += 4) - 4, true)
+    this.u32 = () => view.getUint32 ((pos += 4) - 4, true)
+    this.f32 = () => view.getFloat32((pos += 4) - 4, true)
+    this.f64 = () => view.getFloat64((pos += 8) - 8, true)
+    this.back = n => pos -= n
+
+    this.utf8point = () => {
+        var c1 = this.u8(), c2, c3
+        switch (c1 >> 4) {
+            case 0: case 1: case 2: case 3:
+            case 4: case 5: case 6: case 7:
+                return c1
+            case 12: case 13:
+                c1 = c1 & 0x1F
+                c2 = this.u8() & 0x3F
+                return c1 << 6 | c2
+                break
+            case 14:
+                c1 = c1 & 0x0F
+                c2 = this.u8() & 0x3F
+                c3 = this.u8() & 0x3F
+                return c1 << 12 | c2 << 6 | c3
+        }
+    }
+
+    this.utf8string = () => {
+        var res = "", c
+        while (c = this.utf8point())
+            res += String.fromCharCode(c)
+        return res
+    }
+}
+
+function BufWriter(maxlen) {
+    var buf = new ArrayBuffer(maxlen)
+    var pos = 0
+    var view = new DataView(buf)
+
+    this.i8  = v => view.setInt8   ((pos += 1) - 1, v)
+    this.u8  = v => view.setUint8  ((pos += 1) - 1, v)
+    this.i16 = v => view.setInt16  ((pos += 2) - 2, v, true)
+    this.u16 = v => view.setUint16 ((pos += 2) - 2, v, true)
+    this.i32 = v => view.setInt32  ((pos += 4) - 4, v, true)
+    this.u32 = v => view.setUint32 ((pos += 4) - 4, v, true)
+    this.f32 = v => view.setFloat32((pos += 4) - 4, v, true)
+    this.f64 = v => view.setFloat64((pos += 8) - 8, v, true)
+
+    this.get = () => buf
+}
+
+function runMemScanner(callback) {
+    stage1()
+    window.setTimeout(() => stage2(callback), 2500)
+    return
+
+    function stage1() {
+        window.core.sendSpectate()
+        sendViewportUpdate()
+        window.agar._enableMessageReceiving = false
+        return
+
+        function sendViewportUpdate() {
+            var b = new BufWriter(13)
+            b.u8(0x11)
+            b.f32(1234.567)
+            b.f32(7654.321)
+            b.f32(0.612345)
+            window.agar.webSocket.onmessage({data: b.get()})
+        }
+    }
+
+    function stage2(callback) {
+        window.agar._enableMessageReceiving = true
+        var f32 = new Float32Array(window.agar.buffer)
+        var f64 = new Float64Array(window.agar.buffer)
+        findScale()
+        findViewport()
+        console.log('Expose: scan done')
+        window.core.connect(window.agar.ws)
+        if (callback)
+            callback()
+        return
+
+        function findScale() {
+            var mem
+            window.core.playerZoom(1000)
+            window.core.playerZoom(-4)
+            for (var i = 10; i < 100; i++)
+                if (f64[i] === Math.pow(.9, -4)) {
+                    mem = i
+                    break
+                }
+            if (mem === undefined)
+                return console.error("Expose: can't scan scale")
+            property('scale',
+                     () => f64[mem],
+                     val => f64[mem] = val)
+        }
+
+        function findScale2() {
+            var mem
+            window.core.playerZoom(1000)
+            for (var i = 10; i < 100; i++)
+                if (f32[i] === 1.875) {
+                    mem = i
+                    break
+                }
+            if (mem === undefined)
+                return console.error("Expose: can't scan scale2")
+            property('scale2',
+                     () => f32[mem],
+                     val => f32[mem] = val)
+        }
+
+        function findViewport() {
+            var mem
+            for (var i = 0; i < 100; i++)
+                if (Math.abs(f64[i+0] - 1234.567) < 0.01 &&
+                    Math.abs(f64[i+1] - 7654.321) < 0.01) {
+                    mem = i
+                    break
+                }
+            if (mem === undefined)
+                return console.error("Expose: can't scan rawViewport")
+            property('rawViewport',
+                     () => ({x: f64[mem+0],
+                             y: f64[mem+1],
+                            }))
+        }
+
+        function property(name, get, set) {
+            Object.defineProperty(window.agar, name,
+                                  {get:get, set:set})
+        }
+    }
+}
 
 var allRules = [
     { hostname: ["agar.io"],
@@ -19,9 +164,17 @@ var allRules = [
       },
       init() {
           window.agar = {
+              version: {
+                  expose: GM_info.script.version,
+                  epoch: 1,
+              },
               hooks: {},
               cellProp: {},
+              runMemScanner: runMemScanner,
               enableDirectionSending: true,
+              _enableMessageReceiving: true,
+              myCells: [],
+              top: [],
           }
 
           window.OriginalWebSocket = window.WebSocket
@@ -38,34 +191,76 @@ var allRules = [
               })
           }
           function handleMessage(msg) {
-              var a = new Uint8Array(msg)
-              if (a[0] !== 49)
-                  return
-              var i, pos = 5
-              window.agar.top = []
-              for (i = 0; i < a[1]; i++) {
-                  var id = a[pos]; pos += 4
-                  var name = "", c1, c2, c3
-                  while (c1 = a[pos++])
-                      switch (c1 >> 4) {
-                          case 0: case 1: case 2: case 3:
-                          case 4: case 5: case 6: case 7:
-                              name += String.fromCharCode(c1)
-                              break
-                          case 12: case 13:
-                              c2 = a[pos++]
-                              name += String.fromCharCode((c1 & 0x1F) << 6 |
-                                                          (c2 & 0x3F))
-                              break
-                          case 14:
-                              c2 = a[pos++]
-                              c3 = a[pos++]
-                              name += String.fromCharCode((c1 & 0x0F) << 12 |
-                                                          (c2 & 0x3F) <<  6 |
-                                                          (c3 & 0x3F) <<  0)
-                      }
-                      window.agar.top.push({id, name})
+              try {
+                  handle(msg)
+              } catch (e) {
+                  console.groupCollapsed(e.stack)
+                  console.log(dumpMessage(msg))
+                  console.groupEnd()
               }
+              return
+
+              function handle(msg) {
+                  var b = new BufReader(msg)
+                  switch (b.u8()) {
+                  case 0x12: return handleReset(b)
+                  case 0x20: return handleOwnsBlob(b)
+                  case 0x31: return handleLeaderboardUpdate(b)
+                  case 0xff:
+                      b.u32(), b.u16()
+                      switch (b.u8()) {
+                      case 0x10: return handleWorldUpdate(b)
+                      case 0x40: return handleGameAreaSizeUpdate(b)
+                      }
+                  }
+              }
+              function handleReset(b) {
+                  window.agar.myCells = []
+              }
+              function handleOwnsBlob(b) {
+                  window.agar.myCells.push(b.u32())
+              }
+              function handleLeaderboardUpdate(b) {
+                  var count = b.u32()
+                  window.agar.top = []
+                  for (var i = 0; i < count; i++) {
+                      var id = b.u32()
+                      var name = b.utf8string()
+                      window.agar.top.push({id, name})
+                  }
+              }
+              function handleWorldUpdate(b) {
+                  var b0 = b.u8(), b1 = b.u8(), b2 = b.u8()
+                  if (b0 == 0x10 && b1 >= 1 && b2 == 0) {
+                      b0 = b1
+                      b1 = b2
+                  } else
+                      b.back(1)
+                  cnt_eats = b0 | b1<<8
+                  for (var i = 0; i < cnt_eats; i++) {
+                      var eater = b.u32(), victim = b.u32()
+                      var id = window.agar.myCells.indexOf(victim)
+                      if (id !== -1)
+                          window.agar.myCells.splice(id, 1)
+                  }
+              }
+              function handleGameAreaSizeUpdate(b) {
+                  var x0 = b.f64(), y0 = b.f64(), x1 = b.f64(), y1 = b.f64()
+                  window.agar.dimensions = [x0, y0, x1, y1]
+                  if (window.agar.hooks.dimensionsUpdated)
+                      window.agar.hooks.dimensionsUpdated(x0, y0, x1, y1)
+              }
+          }
+          function dumpMessage(msg) {
+              var a = new Uint8Array(msg)
+              var i, c
+              res = []
+              for (i = 0; i < a.length; i++) {
+                  c = a[i].toString(16)
+                  if (c.length == 1) c = '0' + c
+                  res.push(c)
+              }
+              return res.join(' ')
           }
           function NewWebSocket(url, protocols) {
               if (protocols === undefined)
@@ -102,8 +297,8 @@ var allRules = [
               }
               ws.onmessage = event => {
                   handleMessage(event.data)
-                  if (this.onmessage)
-                      return this.onmessage.call(ws, event)
+                  if (this.onmessage && window.agar._enableMessageReceiving)
+                      this.onmessage.call(ws, event)
               }
               ws.onclose = event => {
                   if (this.onclose)
