@@ -161,6 +161,15 @@ var allRules = [
           m.replace("var:buffer",
                     /=new ArrayBuffer/g,
                     "=$v" + "$&")
+          m.replace("var:functions",
+                    /\w+\.preloadedAudios=\{\}\;var\s\w+/,
+                    "$&" + "=$v")
+          m.replace("hook:cellDraw",
+                    /\w+\((18),(\w+\[\w+>>2\]\|0),(\+\w+),(\+\w+),(\+\w+),(\+\w+),(\+\w+),(\w+\&1\|0)\)\|0;/,
+                    "$h?$h($1,$2,$3,$4,$5,$6,$7,$8)" + ":$&")
+          m.replace("var:h",
+                    /\=\[\];var h\=/,
+                    "$&" + "$v=")
       },
       init() {
           window.agar = {
