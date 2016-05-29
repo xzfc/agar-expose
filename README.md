@@ -1,3 +1,7 @@
+# UPD
+
+This branch preserved for historical reasons. It does not works now.
+
 # Agar.io Expose
 ## What is it?
 Agar.io Expose — helper script for agar.io modding.
